@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -93,9 +94,15 @@ func getUserOrders(w http.ResponseWriter, r *http.Request) {
 
 	for _, u := range users {
 		if u.ID == userID {
+			var userOrders []Order
+			for _, o := range orders {
+				if o.UserID == userID {
+					userOrders = append(userOrders, o)
+				}
+			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(u.Orders)
+			json.NewEncoder(w).Encode(userOrders)
 			return
 		}
 	}
@@ -134,5 +141,15 @@ func updateOrderStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/users", getUsers)
+	mux.HandleFunc("GET /api/v1/orders", getOrders)
+	mux.HandleFunc("POST /api/v1/users", createUser)
+	mux.HandleFunc("POST /api/v1/orders", createOrder)
+	mux.HandleFunc("GET /api/v1/users/{id}/orders", getUserOrders)
+	mux.HandleFunc("PATCH /api/v1/orders/{id}", updateOrderStatus)
 
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		fmt.Println("Ошибка запуска сервера:", err)
+	}
 }
